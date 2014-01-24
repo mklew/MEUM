@@ -80,12 +80,12 @@ replmodel.ev.optim <- function(par, func, dimension) {
            stop.criteria = function(t, best, func) ev.stop.criteria(t, best, func, tmax=1000, tau=10, eps=0.1),
            selection = ev.selection.t,
            crossover = ev.crossover.uni,
-           mutation = function(x) ev.mutation(x, 0.1),
+           mutation = function(x) ev.mutation(x, 0.5),
            replacement = function(p, c, func, mu) ev.replacement.elite(p, c, func, mu, 1))
 }
 
 replmodel.optim <- function() {
-
+  
 }
 
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
@@ -93,19 +93,9 @@ replmodel.optim <- function() {
 # lower, upper - ograniczenia punktow z dziedziny (granice kostki)
 # max_eval - pozostala liczba ewaluacji funkcji dla obecnego stanu budzetu
 optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
-  print("par")
-  print(par) # wziac liczbe wymiarow z par!
-  print("lower")
-  print(lower)
-  print("upper") 
-  print(upper)
-  print("max_eval")
-  print(max_eval)
-  #optim(par, fun, method="L-BFGS-B",
-  #      lower=lower, upper=upper,
-  #      control=list(maxit=max_eval))
+  replmodel.ev.optim(par, fun, length(par))
 }
 
 # 2gi- id (nazwa) algorytmu
 # 3ci - nazwa katalogu, do ktorego beda zapisane wyniki
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000)
+bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000, instances=c(1))
