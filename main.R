@@ -84,13 +84,9 @@ replmodel.ev.optim <- function(par, func, dimension) {
            replacement = function(p, c, func, mu) ev.replacement.elite(p, c, func, mu, 1))
 }
 
-replmodel.optim <- function() {
-  
-}
-
-initial.point <- function(dimension, lower, upper) {
+initial.point <- function(dimension, n, lower, upper) {
   # TODO czy te kostki to będą dla każdego x? tzn. jeśli mamy f(x1,x2) to czy kostki będa osobne dla x1 i x2
-  runif(dimension, min=lower, max=upper)
+  t(sapply(1:n, function(i) runif(dimension, min=lower, max=upper)))
 }
 
 # names - wektor z nazwami data frame. Ostatnia nazwa symbolizuje Y. Reszta to features
@@ -111,45 +107,56 @@ nn.model.approx <- function(nn) {
   approx
 }
 
-nn.model <- function(dataFrame, startWeights = F) {  
+nn.model <- function(dataFrame, startWeights = FALSE) {  
   hiddenUnits <- 10
   if(is.list(startWeights)) {
     neuralnet(nn.model.formula(names(dataFrame)), dataFrame, startweights=startWeights,
-      hidden=hiddenUnits, threshold=0.01, err.fct="sse",act.fct="tanh", linear.output=T)
+      hidden=hiddenUnits, threshold=0.01, err.fct="sse",act.fct="tanh", linear.output=TRUE)
   }
   else {
     # Tutaj jest problem jak ćwiczmy sieć mając tylko 1 punkt. 
     # W krokach stepmax nie jesteśmy w stanie osiągnąć tego thresholdu
-    neuralnet(nn.model.formula(names(dataFrame)), dataFrame, rep=1, stepmax = 1e+07, lifesign='full',
-      hidden=hiddenUnits, threshold=0.01, err.fct="sse",act.fct="tanh", linear.output=T)
+    neuralnet(nn.model.formula(names(dataFrame)), dataFrame, rep=1, stepmax = 1e+05, lifesign='full',
+      hidden=hiddenUnits, threshold=0.01, err.fct="sse",act.fct="tanh", linear.output=TRUE)
   }  
 }
 
+# n - liczba przykladow do wyprodukowania
+explore.f <- function(fun, fDimension, n, lower, upper) {
+  initialPoints <- t(sapply(1:n, function(i) runif(fDimension, lower, upper)))
+  y0 <- fun(initialPoints)
+  as.data.frame(cbind(initialPoints, y0))  
+}
+
+exploit.f <- function(fun, fDimension, n, lower, uppper) {
+  points <- t(sapply(1:n, function(i) rnorm(fDimension, c((lower-upper)/10, (lower-upper)/10)))) # TODO poszukac lepszego rozwiazania dla sd
+  y0 <- fun(initialPoints)
+  as.data.frame(cbind(initialPoints, y0))  
+}
 
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
 # fun - minimalizowana funkcja
 # lower, upper - ograniczenia punktow z dziedziny (granice kostki)
 # max_eval - pozostala liczba ewaluacji funkcji dla obecnego stanu budzetu
 optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
+  nEval <- 50
   fDimension <- length(par)
-  initialPoint <- initial.point(fDimension, lower, upper)
-  # pierwsza ewaluacja funkcji
-  y0 <- fun(initialPoint)
-  # data frame dla sieci neuronowej
-  dataf <- as.data.frame(matrix(c(initialPoint, y0), nrow=1, ncol=fDimension+1))  
+    # data frame dla sieci neuronowej
+  dataf <- explore.f(fun, fDimension, nEval, lower, upper)
   print(dataf)
   nn <- nn.model(dataf)
   plot(nn)
   print(nn$weights)
   approximationFunction <- nn.model.approx(nn)
   best = 0
-  for (i in 1:10 ) {
+  for (i in 1:10) {
     print(paste("iteration ", i))
     best <- replmodel.ev.optim(par, approximationFunction, fDimension)
     print(paste("best ", best))
     y <- fun(best) # i+1 ewaluacja (+1 bo y0) 
     print(paste("y ", y))
     dataf <- rbind(dataf, c(best,y))
+    dataf <- rbind(dataf, exploit.f(fun, fDimension, nEval, lower, upper))
     nn <- nn.model(dataf, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
     approximationFunction <- nn.model.approx(nn)
   }
@@ -157,10 +164,10 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
 }
 
 ff <- function(x) {
-  x^3 + 100
+  rowSums(x)^3 + 100
 }
 
-print(optimizer.wrapper(c(0), ff, 0, 100000, 1000))
+print(optimizer.wrapper(c(0,0), ff, 0, 100000, 1000))
 
 
 # 2gi- id (nazwa) algorytmu
