@@ -1,5 +1,5 @@
 library("bbob")
-
+library('neuralnet')
 
 ## algorytm ewolucyjny
 ev.optim <- function (par, lambda, mu, crossover.probability,
@@ -88,14 +88,81 @@ replmodel.optim <- function() {
   
 }
 
+initial.point <- function(dimension, lower, upper) {
+  # TODO czy te kostki to będą dla każdego x? tzn. jeśli mamy f(x1,x2) to czy kostki będa osobne dla x1 i x2
+  runif(dimension, min=lower, max=upper)
+}
+
+# names - wektor z nazwami data frame. Ostatnia nazwa symbolizuje Y. Reszta to features
+nn.model.formula <- function(names) {
+  yName <- names[length(names)]
+  featureNames <- names[1:length(names)-1]
+  features <- paste(featureNames, collapse="+")
+  formulaStr <- paste(c(yName,"~",features), collapse='')  
+  formula(formulaStr)
+}
+
+# zwraca funkcje aproksymującą dla pojedynczych wektorów
+nn.model.approx <- function(nn) {
+  approx <- function(arg) {
+    nn.results <- compute(nn, arg)
+    nn.results$net.result[1,1]
+  }
+  approx
+}
+
+nn.model <- function(dataFrame, startWeights = F) {  
+  hiddenUnits <- 10
+  if(is.list(startWeights)) {
+    neuralnet(nn.model.formula(names(dataFrame)), dataFrame, startweights=startWeights,
+      hidden=hiddenUnits, threshold=0.01, err.fct="sse",act.fct="tanh", linear.output=T)
+  }
+  else {
+    # Tutaj jest problem jak ćwiczmy sieć mając tylko 1 punkt. 
+    # W krokach stepmax nie jesteśmy w stanie osiągnąć tego thresholdu
+    neuralnet(nn.model.formula(names(dataFrame)), dataFrame, rep=1, stepmax = 1e+07, lifesign='full',
+      hidden=hiddenUnits, threshold=0.01, err.fct="sse",act.fct="tanh", linear.output=T)
+  }  
+}
+
+
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
 # fun - minimalizowana funkcja
 # lower, upper - ograniczenia punktow z dziedziny (granice kostki)
 # max_eval - pozostala liczba ewaluacji funkcji dla obecnego stanu budzetu
 optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
-  replmodel.ev.optim(par, fun, length(par))
+  fDimension <- length(par)
+  initialPoint <- initial.point(fDimension, lower, upper)
+  # pierwsza ewaluacja funkcji
+  y0 <- fun(initialPoint)
+  # data frame dla sieci neuronowej
+  dataf <- as.data.frame(matrix(c(initialPoint, y0), nrow=1, ncol=fDimension+1))  
+  print(dataf)
+  nn <- nn.model(dataf)
+  plot(nn)
+  print(nn$weights)
+  approximationFunction <- nn.model.approx(nn)
+  best = 0
+  for (i in 1:10 ) {
+    print(paste("iteration ", i))
+    best <- replmodel.ev.optim(par, approximationFunction, fDimension)
+    print(paste("best ", best))
+    y <- fun(best) # i+1 ewaluacja (+1 bo y0) 
+    print(paste("y ", y))
+    dataf <- rbind(dataf, c(best,y))
+    nn <- nn.model(dataf, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
+    approximationFunction <- nn.model.approx(nn)
+  }
+  best
 }
+
+ff <- function(x) {
+  x^3 + 100
+}
+
+print(optimizer.wrapper(c(0), ff, 0, 100000, 1000))
+
 
 # 2gi- id (nazwa) algorytmu
 # 3ci - nazwa katalogu, do ktorego beda zapisane wyniki
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000, instances=c(1))
+#bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000, instances=c(1))
