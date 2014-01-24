@@ -134,6 +134,24 @@ exploit.f <- function(fun, fDimension, n, lower, uppper) {
   as.data.frame(cbind(initialPoints, y0))  
 }
 
+nn.normalize <- function(x) {
+  m <- colMeans(x)
+  colSd <- function (x, na.rm=FALSE) apply(X=x, MARGIN=2, FUN=sd, na.rm=na.rm)
+  s <- colSd(x)
+  data <- do.call("rbind", by(dataf, 1:nrow(dataf), function(row) {
+      (row - m) / s
+  }))
+
+  denorm <- function(x) {
+    x * s + m
+  }
+  list("data"=data, "mean"=m, "sd"=s, "denorm"=denorm)
+}
+
+nn.denormalize <- function(x, m, sd) {
+  x * sd + m
+}
+
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
 # fun - minimalizowana funkcja
 # lower, upper - ograniczenia punktow z dziedziny (granice kostki)
@@ -142,10 +160,12 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
   nEval <- 50
   fDimension <- length(par)
     # data frame dla sieci neuronowej
-  dataf <- explore.f(fun, fDimension, nEval, lower, upper)
-  print(dataf)
-  nn <- nn.model(dataf)
-  plot(nn)
+  dataPoints <- explore.f(fun, fDimension, nEval, lower, upper)  
+  normalized <- nn.normalize(dataPoints)
+  nnTrainingData <- normalized$data
+  print(nnTrainingData)
+  nn <- nn.model(nnTrainingData)
+  #plot(nn)
   print(nn$weights)
   approximationFunction <- nn.model.approx(nn)
   best = 0
@@ -153,13 +173,16 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
     print(paste("iteration ", i))
     best <- replmodel.ev.optim(par, approximationFunction, fDimension)
     print(paste("best ", best))
-    y <- fun(best) # i+1 ewaluacja (+1 bo y0) 
+    y <- fun(normalized$denorm(best)) # i+1 ewaluacja (+1 bo y0) 
     print(paste("y ", y))
-    dataf <- rbind(dataf, c(best,y))
-    dataf <- rbind(dataf, exploit.f(fun, fDimension, nEval, lower, upper))
-    nn <- nn.model(dataf, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
+    dataPoints <- rbind(dataPoints, c(best,y))
+    dataPoints <- rbind(dataPoints, exploit.f(fun, fDimension, nEval, lower, upper))
+    normalized <- nn.normalize(dataPoints)
+    nnTrainingData <- normalized$data
+    nn <- nn.model(nnTrainingData, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
     approximationFunction <- nn.model.approx(nn)
   }
+  ## TODO return denormalized vector
   best
 }
 
@@ -167,7 +190,7 @@ ff <- function(x) {
   rowSums(x)^3 + 100
 }
 
-print(optimizer.wrapper(c(0,0), ff, 0, 100000, 1000))
+print(optimizer.wrapper(c(0,0), ff, -100, 100, 1000))
 
 
 # 2gi- id (nazwa) algorytmu
