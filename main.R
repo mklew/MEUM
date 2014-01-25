@@ -102,7 +102,7 @@ nn.model.formula <- function(names) {
 nn.model.approx <- function(nn) {
   approx <- function(arg) {
     nn.results <- compute(nn, arg)
-    nn.results$net.result[1,1]
+    nn.results$net.result
   }
   wrapper <- function(vectorOrMatrix) {
     if(is.matrix(vectorOrMatrix)){
@@ -152,13 +152,9 @@ nn.normalize <- function(x) {
   }))
 
   denorm <- function(x) {
-    x * s + m
+    x * s[1:length(x)] + m[1:length(x)]
   }
   list("data"=data, "mean"=m, "sd"=s, "denorm"=denorm)
-}
-
-nn.denormalize <- function(x, m, sd) {
-  x * sd + m
 }
 
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
@@ -177,24 +173,22 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
   #plot(nn)
   print(nn$weights)
   approximationFunction <- nn.model.approx(nn)
-  best = 0
+  bestPoint <- par
   for (i in 1:10) {
     print(paste("iteration ", i))
     best <- replmodel.ev.optim(par, approximationFunction, fDimension)
-    print(paste("best ", best))
-    y <- fun(normalized$denorm(best)) # i+1 ewaluacja (+1 bo y0) 
-    print(paste("y ", y))
-    dataPoints <- rbind(dataPoints, c(best,y))
+    denormalized <- normalized$denorm(best)
+    bestPoint <- denormalized 
+    y <- fun(denormalized) # i+1 ewaluacja (+1 bo y0) 
+    dataPoints <- rbind(dataPoints, c(denormalized,y))
     dataPoints <- rbind(dataPoints, exploit.f(fun, fDimension, nEval, lower, upper))
     normalized <- nn.normalize(dataPoints)
-    nnTrainingData <- normalized$data
-    print(nnTrainingData)
-    # tutaj się wywala na 4 iteracji, wtedy widać ze w nnTrainingData jako y są Nan
+    nnTrainingData <- normalized$data    
     nn <- nn.model(nnTrainingData, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
     approximationFunction <- nn.model.approx(nn)
   }
   ## TODO return denormalized vector
-  best
+  bestPoint
 }
 
 ff <- function(x) {
