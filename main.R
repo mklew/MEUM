@@ -104,7 +104,16 @@ nn.model.approx <- function(nn) {
     nn.results <- compute(nn, arg)
     nn.results$net.result[1,1]
   }
-  approx
+  wrapper <- function(vectorOrMatrix) {
+    if(is.matrix(vectorOrMatrix)){
+      approx(vectorOrMatrix)
+    }
+    else {
+      m <- array(vectorOrMatrix, dim=c(1, length(vectorOrMatrix)))
+      approx(m)
+    }  
+  }
+  wrapper
 }
 
 nn.model <- function(dataFrame, startWeights = FALSE) {  
@@ -128,10 +137,10 @@ explore.f <- function(fun, fDimension, n, lower, upper) {
   as.data.frame(cbind(initialPoints, y0))  
 }
 
-exploit.f <- function(fun, fDimension, n, lower, uppper) {
+exploit.f <- function(fun, fDimension, n, lower, upper) {
   points <- t(sapply(1:n, function(i) rnorm(fDimension, c((lower-upper)/10, (lower-upper)/10)))) # TODO poszukac lepszego rozwiazania dla sd
-  y0 <- fun(initialPoints)
-  as.data.frame(cbind(initialPoints, y0))  
+  y0 <- fun(points)
+  as.data.frame(cbind(points, y0))  
 }
 
 nn.normalize <- function(x) {
@@ -179,6 +188,8 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
     dataPoints <- rbind(dataPoints, exploit.f(fun, fDimension, nEval, lower, upper))
     normalized <- nn.normalize(dataPoints)
     nnTrainingData <- normalized$data
+    print(nnTrainingData)
+    # tutaj się wywala na 4 iteracji, wtedy widać ze w nnTrainingData jako y są Nan
     nn <- nn.model(nnTrainingData, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
     approximationFunction <- nn.model.approx(nn)
   }
@@ -187,7 +198,16 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
 }
 
 ff <- function(x) {
-  rowSums(x)^3 + 100
+  f <- function(mat) {
+    rowSums(mat)^3 + 100  
+  }
+  if(is.matrix(x)){
+    f(x)
+  }
+  else {
+    m <- array(x, dim=c(1, length(x)))
+    f(m)
+  }  
 }
 
 print(optimizer.wrapper(c(0,0), ff, -100, 100, 1000))
