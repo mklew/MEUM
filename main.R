@@ -133,13 +133,13 @@ nn.model <- function(dataFrame, startWeights = FALSE) {
 # n - liczba przykladow do wyprodukowania
 explore.f <- function(fun, fDimension, n, lower, upper) {
   initialPoints <- t(sapply(1:n, function(i) runif(fDimension, lower, upper)))
-  y0 <- fun(initialPoints)
+  y0 <- apply(initialPoints,1, fun)
   as.data.frame(cbind(initialPoints, y0))  
 }
 
 exploit.f <- function(fun, fDimension, n, lower, upper) {
-  points <- t(sapply(1:n, function(i) rnorm(fDimension, c((lower-upper)/10, (lower-upper)/10)))) # TODO poszukac lepszego rozwiazania dla sd
-  y0 <- fun(points)
+  points <- t(sapply(1:n, function(i) rnorm(fDimension, c((upper-lower)/10, (upper-lower)/10)))) # TODO poszukac lepszego rozwiazania dla sd
+  y0 <- apply(points,1, fun)
   as.data.frame(cbind(points, y0))  
 }
 
@@ -147,7 +147,7 @@ nn.normalize <- function(x) {
   m <- colMeans(x)
   colSd <- function (x, na.rm=FALSE) apply(X=x, MARGIN=2, FUN=sd, na.rm=na.rm)
   s <- colSd(x)
-  data <- do.call("rbind", by(dataf, 1:nrow(dataf), function(row) {
+  data <- do.call("rbind", by(x, 1:nrow(x), function(row) {
       (row - m) / s
   }))
 
@@ -209,4 +209,4 @@ print(optimizer.wrapper(c(0,0), ff, -100, 100, 1000))
 
 # 2gi- id (nazwa) algorytmu
 # 3ci - nazwa katalogu, do ktorego beda zapisane wyniki
-#bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000, instances=c(1))
+bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000, instances=c(1))
