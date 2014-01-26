@@ -242,4 +242,4 @@ ff <- function(x) {
 
 # 2gi- id (nazwa) algorytmu
 # 3ci - nazwa katalogu, do ktorego beda zapisane wyniki
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_14_10", budget=100, instances=c(14), dimensions=c(5))
+bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_14_5", budget=100, instances=c(14), dimensions=c(5))
