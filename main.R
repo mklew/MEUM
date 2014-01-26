@@ -157,25 +157,41 @@ nn.normalize <- function(x) {
   list("data"=data, "mean"=m, "sd"=s, "denorm"=denorm)
 }
 
+nn.has.no.weights <- function(nn) {
+  is.na(nn$weights)
+}
+
+optimizer.mse <- function(dataPoints, approximationFunction) {
+  approxY <- approximationFunction(dataPoints[,1:length(dataPoints)-1])
+  #print(dataPoints[,length(dataPoints)]); print(approxY); print(dataPoints) 
+  sqrt(mean((approxY - dataPoints[,length(dataPoints)])^2))
+}
+
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
 # fun - minimalizowana funkcja
 # lower, upper - ograniczenia punktow z dziedziny (granice kostki)
 # max_eval - pozostala liczba ewaluacji funkcji dla obecnego stanu budzetu
 optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
-  nEval <- 50
+  nEval <- 50 # liczba ewaluacji funkcji celu
+  maxNWorseIters <- 3 # przez ile iteracji mozemy nie otrzymac poprawy
+  nWorseIters <- 0 # obecna liczba iteracji bez poprawy aproksymacji funkcji celu
+  maxIters <- 10 # maksymalna liczba iteracji 
+  
   fDimension <- length(par)
     # data frame dla sieci neuronowej
   dataPoints <- explore.f(fun, fDimension, nEval, lower, upper)  
   normalized <- nn.normalize(dataPoints)
   nnTrainingData <- normalized$data
-  print(nnTrainingData)
+  #print(nnTrainingData)
   nn <- nn.model(nnTrainingData)
   #plot(nn)
-  print(nn$weights)
+  #print(nn$weights)
   approximationFunction <- nn.model.approx(nn)
+  lastMse <- optimizer.mse(dataPoints,approximationFunction)
   bestPoint <- par
-  for (i in 1:10) {
-    print(paste("iteration ", i))
+  t <- 0
+  for(i in 1:maxIters) {
+    print(paste("iteration ", i))  
     best <- replmodel.ev.optim(par, approximationFunction, fDimension)
     denormalized <- normalized$denorm(best)
     bestPoint <- denormalized 
@@ -185,7 +201,24 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
     normalized <- nn.normalize(dataPoints)
     nnTrainingData <- normalized$data    
     nn <- nn.model(nnTrainingData, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
+    #print(nn$weights)
+    if(is.na(nn) || is.null(nn$weights)) {
+      print("siec neuronowa nie posiada wag")
+      break;
+    }
     approximationFunction <- nn.model.approx(nn)
+    
+    currentMse <- optimizer.mse(dataPoints,approximationFunction)
+    #print(lastMse)
+    if(currentMse > lastMse) {
+      if(nWorseIters > maxNWorseIters) {
+        print("Osiagnieto maksymalna liczbe gorszych wartosci MSE")
+        break
+      } else {
+        nWorseIters <- nWorseIters+1
+      }
+    } else nWorseIters <- 0 
+    lastMse <- currentMse
   }
   ## TODO return denormalized vector
   bestPoint
@@ -204,9 +237,9 @@ ff <- function(x) {
   }  
 }
 
-print(optimizer.wrapper(c(0,0), ff, -100, 100, 1000))
+#print(optimizer.wrapper(c(0,0), ff, -100, 100, 1000))
 
 
 # 2gi- id (nazwa) algorytmu
 # 3ci - nazwa katalogu, do ktorego beda zapisane wyniki
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt", budget=10000, instances=c(1))
+bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_14_10", budget=100, instances=c(14), dimensions=c(5))
