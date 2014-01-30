@@ -169,21 +169,28 @@ budowę sieci neuronowej o dowolnej liczbie warstw ukrytych, liczbie ukrytych
 neuronów, wybór funkcji aktywacji, wybór metody optymalizacji i innych 
 parametrów.
 
-Użyliśmy sieci o następujących parametrach:
+Użyto sieci o następujących parametrach:
 \begin{itemize}
 \item sieć składa się z 3 warstw, w tym jednej warstwy ukrytej,
 \item sieć posiada tylko jeden neuron wyjściowy,
 \item wyjście sieci jest liniowe,
 \item funkcja aktywacji to tangens hiperboliczny,
 \item miarą błędu na zbiorze trenującym jest błąd średniokwadratowy,
-\item metoda optymalizacji to resilient backpropagation with weight backtracking TODO przetłumaczyć to,
+\item metoda optymalizacji to RPROP+
 \item rozmiar wejścia sieci jest parametryzowany w zależności od aktualnie badanej funkcji i jej wymiaru,
 \item liczba neuronów warstwy ukrytej jest parametryzowana podczas badań.
 \end{itemize}
 
-Ponadto zastosowaliśmy metodę normalizacji danych przed rozpoczęciem trenowania 
-sieci w celu przyspieszenia algorytmu. Podczas predykcji dane są oczywiście 
-normalizowane, a wynik denormalizowany.
+Ponadto zastosowano metodę normalizacji danych przed rozpoczęciem trenowania 
+sieci w celu przyspieszenia algorytmu. Podczas predykcji dane są normalizowane, a wynik denormalizowany.
+
+\subsection{Proces normalizacji}
+Próbkę danych $x$ normalizuje się zgodnie ze wzorem:
+
+$x_{norm}=\frac{x - m}{sd}$
+
+gdzie:	$m$ - wartość oczekiwana $x$, $sd$ - standardowe odchylenie $x$.
+Wzór podano dla formy wektorowej.
 
 \section{Eksperymenty}
 Celem eksperymentów jest zbadanie, jak optymalizacja z wykorzystaniem modelu 
