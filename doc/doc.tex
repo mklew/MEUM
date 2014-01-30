@@ -17,9 +17,6 @@ aproksymowana modelem zastępczym}}
 \section{Zadanie}
 Implementacja i testowanie algorytmu ewolucyjnego, w którym funkcja celu jest aproksymowana modelem 
 zastępczym. Na ten model proponuję IBHM, MLP lub model jądrowy.
-\section{Interpretacja}
-
-TODO dodać rzeczy z dokumentacji wstepnej
 
 \section{Aproksymator}
 Zgodnie z założeniami wstępnymi użyliśmy perceptronu wielowarstwowego do 
@@ -36,7 +33,7 @@ Użyliśmy sieci o następujących parametrach:
 \item wyjście sieci jest liniowe,
 \item funkcja aktywacji to tangens hiperboliczny,
 \item miarą błędu na zbiorze trenującym jest błąd średniokwadratowy,
-\item metoda optymalizacji to resilient backpropagation with weight backtracking TODO przetłumaczyć to,
+\item metoda optymalizacji to RPROP+\cite{Riedmiller93adirect}
 \item rozmiar wejścia sieci jest parametryzowany w zależności od aktualnie badanej funkcji i jej wymiaru,
 \item liczba neuronów warstwy ukrytej jest parametryzowana podczas badań.
 \end{itemize}
