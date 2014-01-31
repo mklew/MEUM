@@ -34,7 +34,6 @@ ev.init.rand <- function(mu, par, eps) replicate(mu, rnorm(length(par), mean=par
 ev.stop.criteria <- function(t, best, func, tmax, tau, eps) {
   t >= tmax || (t-tau >= 1 && abs(func(best[[t-tau]]) - func(best[[t]])) < eps)
 }
-# TODO func nie powinno byc wolane tak czesto (wczesniej juz byly policzone wartosci funkcji dla tych punktow) - przechowywac obliczona wartosc w liscie reprezentujacej dany punkt!
 
 # selekcja turniejowa
 ev.selection.t <- function(p, number, func) {
@@ -55,7 +54,6 @@ ev.crossover.uni <- function(pair) {
 }
 
 # Prosta mutacja przy uzyciu ustalonego sigma
-# TODO tu mozna by zrobic z adaptacja kierunku spadku gradientu funkcji celu
 ev.mutation <- function(x, sigma) {
   point = x[[1]]
   point + rnorm(length(point), mean=0, sd=sigma)
@@ -163,7 +161,6 @@ nn.has.no.weights <- function(nn) {
 
 optimizer.mse <- function(dataPoints, approximationFunction) {
   approxY <- approximationFunction(dataPoints[,1:length(dataPoints)-1])
-  #print(dataPoints[,length(dataPoints)]); print(approxY); print(dataPoints) 
   sqrt(mean((approxY - dataPoints[,length(dataPoints)])^2))
 }
 
@@ -174,9 +171,9 @@ resetToDefaults <- function() {
   globalParameters.maxNWorseIters <- 3 # przez ile iteracji mozemy nie otrzymac poprawy
   globalParameters.nWorseIters <- 0 # obecna liczba iteracji bez poprawy aproksymacji funkcji celu
   globalParameters.maxIters <- 10 # maksymalna liczba iteracji 
-  globalParameters.mu <- 5
-  globalParameters.lambda <- 5
-  globalParameters.tmax <- 1000
+  globalParameters.mu <- 100
+  globalParameters.lambda <- 100
+  globalParameters.tmax <- 10000 # maksymalna liczba populacji algorytmu ewolucyjnego
 }
 
 # par - wektor numeryczny z punktem startowym dla optymalizacji (moze byc zignorowane)
@@ -194,10 +191,7 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
   dataPoints <- explore.f(fun, fDimension, nEval, lower, upper)  
   normalized <- nn.normalize(dataPoints)
   nnTrainingData <- normalized$data
-  #print(nnTrainingData)
   nn <- nn.model(nnTrainingData)
-  #plot(nn)
-  #print(nn$weights)
   approximationFunction <- nn.model.approx(nn)
   lastMse <- optimizer.mse(dataPoints,approximationFunction)
   bestPoint <- par
@@ -213,7 +207,6 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
     normalized <- nn.normalize(dataPoints)
     nnTrainingData <- normalized$data    
     nn <- nn.model(nnTrainingData, nn$weights) # dotrenowujemy sieć wagi poczatkowe już mamy
-    #print(nn$weights)
     if(is.na(nn) || is.null(nn$weights)) {
       print("siec neuronowa nie posiada wag")
       break;
@@ -221,7 +214,6 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
     approximationFunction <- nn.model.approx(nn)
     
     currentMse <- optimizer.mse(dataPoints,approximationFunction)
-    #print(lastMse)
     if(currentMse > lastMse) {
       if(nWorseIters > maxNWorseIters) {
         print("Osiagnieto maksymalna liczbe gorszych wartosci MSE")
@@ -235,6 +227,13 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
   ## TODO return denormalized vector
   bestPoint
 }
+
+ev.wrapper <- function(par, fun, lower, upper, max_eval) {
+    wynik = replmodel.ev.optim(par, fun, length(par))
+    print(wynik)
+    wynik
+}
+
 
 ff <- function(x) {
   f <- function(mat) {
@@ -256,13 +255,11 @@ globalParameters.nEval <- 50
 globalParameters.maxNWorseIters <- 3 # przez ile iteracji mozemy nie otrzymac poprawy
 globalParameters.nWorseIters <- 0 # obecna liczba iteracji bez poprawy aproksymacji funkcji celu
 globalParameters.maxIters <- 10 # maksymalna liczba iteracji 
-globalParameters.mu <- 5
-globalParameters.lambda <- 5
-globalParameters.tmax <- 1000
-# 2gi- id (nazwa) algorytmu
-# 3ci - nazwa katalogu, do ktorego beda zapisane wyniki
+globalParameters.mu <- 100
+globalParameters.lambda <- 100
+globalParameters.tmax <- 10000
 resetToDefaults()
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_107_110", budget=100, instances=c(107, 110), dimensions=c(5,10,20))
+#bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_15_16", budget=100, instances=c(15, 16), dimensions=c(5,10,20))
 
 globalParameters.hiddenUnits <- 50
 # globalParameters.nEval <- 50
@@ -272,14 +269,16 @@ globalParameters.hiddenUnits <- 50
 # globalParameters.lambda <- 5
 # globalParameters.mu <- 5
 # globalParameters.tmax <- 1000 # liczba ewaluacji alg. ew. dopóki się nie podda
+#bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_15_16_units50", budget=100, instances=c(15, 16), dimensions=c(5,10,20))
 
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_107_110_units50", budget=100, instances=c(107, 110), dimensions=c(5,10,20))
 # globalParameters.nEval <- 50
 # globalParameters.maxNWorseIters <- 3 # przez ile iteracji mozemy nie otrzymac poprawy
 # globalParameters.nWorseIters <- 0 # obecna liczba iteracji bez poprawy aproksymacji funkcji celu
 # globalParameters.maxIters <- 10 # maksymalna liczba iteracji 
-globalParameters.lambda <-25
-globalParameters.mu <- 20
+globalParameters.lambda <-250
+globalParameters.mu <- 250
 # globalParameters.tmax <- 1000 # liczba ewaluacji alg. ew. dopóki się nie podda
-bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_107_110_lambda_25_mu_20", budget=100, instances=c(107, 110), dimensions=c(5,10,20))
+#bbo_benchmark(optimizer.wrapper, "mlp-model-opt", "optim_mlp-model-opt_15_16_lambda_25_mu_20", budget=100, instances=c(15, 16), dimensions=c(5,10,20))
+bbo_benchmark(ev.wrapper, "mlp-model-opt", "optim_mlp-model-opt_ev_25_20", budget=100, dimensions=c(5,10,20))
+
 
