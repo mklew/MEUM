@@ -161,6 +161,7 @@ wartości odpowiednio $10$ oraz $0.1$.
 \end{itemize}
 
 \subsection{Perceptron wielowarstwowy}
+
 \label{sec:aprox}
 Zgodnie z założeniami użyto perceptronu wielowarstwowego do budowy modelu 
 zastępczego - aproksymatora funkcji celu. W tym celu, w ramach projektu 
@@ -177,12 +178,14 @@ Użyto sieci o następujących parametrach:
 \item funkcja aktywacji to tangens hiperboliczny,
 \item miarą błędu na zbiorze trenującym jest błąd średniokwadratowy,
 \item metoda optymalizacji to RPROP+
-\item rozmiar wejścia sieci jest parametryzowany w zależności od aktualnie badanej funkcji i jej wymiaru,
+\item rozmiar wejścia sieci jest parametryzowany w zależności od aktualnie 
+badanej funkcji i jej wymiaru,
 \item liczba neuronów warstwy ukrytej jest parametryzowana podczas badań.
 \end{itemize}
 
 Ponadto zastosowano metodę normalizacji danych przed rozpoczęciem trenowania 
-sieci w celu przyspieszenia algorytmu. Podczas predykcji dane są normalizowane, a wynik denormalizowany.
+sieci w celu przyspieszenia algorytmu. Podczas predykcji dane są normalizowane, 
+a wynik denormalizowany.
 
 \subsection{Proces normalizacji}
 Próbkę danych $x$ normalizuje się zgodnie ze wzorem:
@@ -510,15 +513,65 @@ wielowarstwowy z 50 neuronami w warstwie ukrytej).}
 \section{Dyskusja wyników}
 
 Dla algorytmu ewolucyjnego, który nie wykorzystuje żadnego modelu zastępczego, 
-wymagany minimalny błąd do optimum lokalnego osiągalne 
+wymagana minimalna odległość do optimum lokalnego osiągalne jest dopiero przy 
+dość dużej liczbie ewaluacji funkcji celu. W przypadku najtrudniejszej w 
+osiągnięciu wartości docelowej, tj. dla $f_{optim} + 10^{-8}$ (zaznaczone 
+czerwoną linią) dla funkcji separowalnych o pięciu wymiarach wymagane jest co 
+najmniej $10^3/DIM$ ewaluacji funkcji celu. Sytuacja ma się oczywiście jeszcze 
+gorzej dla 20 wymiarów -- dla żadnej z funkcji z $f1-24$ praktycznie nie jest 
+osiągalny najtrudniejszy przypadek. Analizując ECDF dla $\Delta f$ (wykresy po 
+prawej stronie) można zauważyć, iż dla małej liczby ewaluacji funkcji celu 
+(oznaczone kolorem seledynowym) odległość od wartości optymalnej $\Delta f$ 
+jest dość wysoka (np. wartość dystrybuanty osiąga wartości większe od zera 
+blisko wartości równej 100). 
+
+Dla algorytmu ewolucyjnego z modelem zastępczym w postaci perceptronu 
+wielowarstwowego (z 10 neuronami na warstwie ukrytej) liczba ewaluacji funkcji 
+do osiągnięcia najprostszego przypadku jest relatywnie niska (w porównaniu z 
+algorytmem ewolucyjnym bez specjalnego zabiegu). Na przykład, dla funkcji 
+$f1-5$ najtrudniejsza odległość od optimum do osiągnięcia (oznaczony czerwoną 
+linią) jest osiągalna w próbach już z mniej niż 100 ewaluacji funkcji celu. 
+Wykresy dystrybuant ECDF dla $\Delta f$ nie różnią się znacząco 
+od dystrybuant dla prostego algorytmu ewolucyjnego, aczkolwiek dla małej liczby 
+ewaluacji funkcji celu (seledynowy kolor) duża część uruchomień skutkuje dość 
+niską $\Delta f$.
+
+Zwiększenie liczby neuronów w ukrytej warstwie do 50 oraz zwiększenie liczności 
+populacji nie objawia się znaczącą poprawą rozwiązania. Dystrybuanty dla tak 
+dobranych parametrów algorytmu są bardzo zbliżone do dystrybuant dla modelu z 
+10 neuronami na warstwie ukrytej, w niektórych przypadkach można zauważyć 
+delikatne przesunięcie wykresów dystrybuant ku co raz mniejszym wartościom 
+$\Delta f$. 
 \section{Wnioski}
 
-Możliwe dobrym rozwiązaniem mogłoby być odpowiednie dobieranie macierzy 
-kowariancji rozkładu normalnego, z którego losowane są punkty w trakcie 
-eksploatacji.
+Zastosowanie modelu zastępczego pozwoliło w znaczący sposób ograniczyć liczbę 
+ewaluacji funkcji niezbędnych do osiągnięcia określonej dokładności 
+rozwiązania. Wniosek ten jest dość oczywisty -- w zaimplementowanym projekcie 
+zastosowano model zastępczy, który to jest głównie eksploatowany do określenia 
+wartości funkcji celu dla punktów z populacji przez algorytm ewolucyjny. 
+Ewaluacja oryginalnej funkcji celu została ograniczona tylko do pewnej małej, 
+sparametryzowanej wartości, która mówi, jak wiele punktów będzie użytych do 
+poprawy aproksymacji przez model zastępczy. 
+Zastosowanie modelu zastępczego ma więc jeszcze jedną istotną zaletę -- pozwala 
+w prostszy sposób (np. tak jak już wcześniej wspomniano -- poprzez 
+parametryzację) na zarządzanie tym, jak bardzo prawdziwa funkcja celu jest 
+wykorzystywana (\emph{eksploatowana}) w zaimplementowanym algorytmie. Fakt ten 
+może być szczególnie istotny w praktycznych zastosowaniach, kiedy użytkownik 
+chce kontrolować w prosty sposób wykorzystanie pewnej (być może) kosztownej 
+operacji.
+
+Przejście z prostego algorytmu ewolucyjnego do rozwiązania z modelem zastępczym 
+pozwoliło ograniczyć liczbę ewaluacji funkcji, aczkolwiek dalsza zmiana 
+parametrów algorytmu już niekoniecznie. Innym, możliwie dobry pomysłem mogłoby 
+być manipulowanie nie tylko liczbą neuronów w warstwie ukrytej, ale również 
+innymi, niemodyfikowanymi w ramach tego projektu parametrami. Dobrym pomysłem 
+mogłoby być wykorzystanie gradientu funkcji do odpowiedniego przygotowania 
+macierzy kowariancji rozkładu normalnego, z którego losowane są punkty w 
+trakcie eksploatacji badanej funkcji celu. 
+
 \begin{thebibliography}{5}
 \bibitem{arabas}
-Jarosław Arabas, Wykłady z algorytmów ewolucyjnych, Wydawnictwo 
+Jarosław Arabas, Wykłady z algorytmów ewolucyjnych,  Wydawnictwo 
 Naukowo-Techniczne Warszawa 2004 
 \end{thebibliography}
 \end{document}
