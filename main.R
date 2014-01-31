@@ -224,7 +224,6 @@ optimizer.wrapper <- function(par, fun, lower, upper, max_eval) {
     } else nWorseIters <- 0 
     lastMse <- currentMse
   }
-  ## TODO return denormalized vector
   bestPoint
 }
 
